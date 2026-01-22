@@ -1,7 +1,7 @@
-# Използваме готова PHP версия с Apache
+# 1. Използваме PHP 8.2 с Apache
 FROM php:8.2-apache
 
-# Инсталираме нужните библиотеки: добавихме libzip-dev за ZIP поддръжка!
+# 2. Инсталираме системните библиотеки (вкл. zip и pgsql)
 RUN apt-get update && apt-get install -y \
     git \
     unzip \
@@ -10,27 +10,28 @@ RUN apt-get update && apt-get install -y \
     libzip-dev \
     && docker-php-ext-install pdo pdo_pgsql intl zip
 
-# Включваме mod_rewrite
+# 3. Включваме mod_rewrite модула на Apache
 RUN a2enmod rewrite
 
-# Настройваме Apache
+# 4. Настройваме Apache да гледа в /public папката
 ENV APACHE_DOCUMENT_ROOT /var/www/html/public
 RUN sed -ri -e 's!/var/www/html!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/sites-available/*.conf
 RUN sed -ri -e 's!/var/www/!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/apache2.conf
 
-# Копираме кода
+# === ТУК Е МАГИЯТА ===
+# Тази команда разрешава на .htaccess файла да работи!
+# Без нея Apache игнорира правилата за API пътищата.
+RUN sed -i '/<Directory \/var\/www\/>/,/<\/Directory>/ s/AllowOverride None/AllowOverride All/' /etc/apache2/apache2.conf
+
+# 5. Копираме кода
 COPY . /var/www/html
 
-# Инсталираме Composer
+# 6. Инсталираме Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
-
-# Разрешаваме на Composer да работи като root
 ENV COMPOSER_ALLOW_SUPERUSER=1
 
-# --- ВАЖНАТА ПРОМЯНА ---
-# 1. Махнахме --no-dev (за да имаш всички библиотеки)
-# 2. Добавихме --no-scripts (за да НЕ гърми, опитвайки се да чисти кеша при build)
+# 7. Инсталираме библиотеките без скриптове (за да не гърми при build)
 RUN composer install --optimize-autoloader --no-scripts
 
-# Оправяме правата
+# 8. Оправяме правата на файловете
 RUN chown -R www-data:www-data /var/www/html
