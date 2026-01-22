@@ -6,7 +6,9 @@ use ApiPlatform\Metadata\ApiResource;
 use Doctrine\ORM\Mapping as ORM;
 
 #[ORM\Entity]
-#[ApiResource]
+#[ApiResource(
+    paginationEnabled: false // Много важно, за да дръпне всички часове наведнъж
+)]
 class WorkHour
 {
     public function getId(): int
