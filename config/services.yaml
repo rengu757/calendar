@@ -1,0 +1,20 @@
+# config/services.yaml
+
+parameters:
+    # Тук само казваме на Symfony да гледа в .env файла
+    google_api_key: '%env(GOOGLE_API_KEY)%'
+    openai_api_key: '%env(OPENAI_API_KEY)%'
+
+services:
+    _defaults:
+        autowire: true
+        autoconfigure: true
+        bind:
+            # Трябва да съвпада с името в __construct на контролера:
+            $openAiKey: '%env(OPENAI_API_KEY)%'
+    App\:
+        resource: '../src/'
+        exclude:
+            - '../src/DependencyInjection/'
+            - '../src/Entity/'
+            - '../src/Kernel.php'
