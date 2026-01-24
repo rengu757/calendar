@@ -26,22 +26,32 @@ class AiVacationController extends AbstractController
         $history = $data['history'] ?? [];
         $wifeHistory = $data['wifeHistory'] ?? [];
 
+        // --- ЗАЩИТАТА Е ТУК ---
+        // Проверяваме дали клиентът изрично е поискал AI анализ
+        $useAi = $data['useAi'] ?? false;
+
         $startDate = $this->detectStartDate($history, $wifeHistory);
         $calcResult = $this->calculateCommonFreeDays($startDate, $history, $wifeHistory);
-
-        // Тук вече имаме масив от масиви: [ ['label' => '12.01-15.01', 'dates' => [...]], ... ]
         $options = $calcResult['options'];
 
         if (empty($options)) {
-            return new JsonResponse(['message' => 'Няма открити общи свободни дни (минимум 3).', 'options' => []]);
+            return new JsonResponse(['message' => 'Няма открити общи свободни дни.', 'options' => []]);
         }
 
-        // Питаме GPT да опише тези конкретни опции
+        // Ако useAi е FALSE, връщаме само датите без да викаме OpenAI
+        if (!$useAi) {
+            return new JsonResponse([
+                'message' => 'Открити са свободни периоди. Натиснете "AI Анализ" за идеи за пътуване.',
+                'options' => $options
+            ]);
+        }
+
+        // САМО АКО useAi Е TRUE, ХАРЧИМ ТОКЕНИ:
         $suggestion = $this->askGpt($options);
 
         return new JsonResponse([
             'message' => $suggestion,
-            'options' => $options // Пращаме всички опции с техните дати
+            'options' => $options
         ]);
     }
 
